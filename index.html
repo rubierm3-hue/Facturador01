@@ -45,7 +45,7 @@
     <!-- Contenido Principal -->
     <main id="main-content" class="flex-grow overflow-y-auto p-4 relative pb-20">
         <div class="h-full flex items-center justify-center text-slate-400 animate-pulse">
-            <i class="fas fa-circle-notch fa-spin mr-2"></i> Iniciando sistema...
+            <i class="fas fa-circle-notch fa-spin mr-2"></i> Conectando...
         </div>
     </main>
 
@@ -83,25 +83,23 @@
             { name: "Buzo Estampado DTF", price: 100000 }
         ];
 
-        // --- CONFIGURACIÓN FIREBASE (ATENCIÓN AQUÍ) ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "PEGAR_AQUI_TU_API_KEY",
-            authDomain: "PEGAR_TU_PROJECT_ID.firebaseapp.com",
-            projectId: "PEGAR_TU_PROJECT_ID",
-            storageBucket: "PEGAR_TU_PROJECT_ID.appspot.com",
-            messagingSenderId: "PEGAR_TU_SENDER_ID",
-            appId: "PEGAR_TU_APP_ID"
+        // --- TUS CÓDIGOS DE FIREBASE REALES (Extraídos de tu imagen) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDiNRn-HxaP9bdsHxmYISOJa3X0eFsDY7g",
+            authDomain: "facturadordr.firebaseapp.com",
+            projectId: "facturadordr",
+            storageBucket: "facturadordr.firebasestorage.app",
+            messagingSenderId: "195211543172",
+            appId: "1:195211543172:web:80685cf5dfb6a15f5cf8d1"
         };
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'dr-designs-app';
+        const appId = 'dr-designs-app';
 
         let db, auth;
         try {
             const fbApp = initializeApp(firebaseConfig);
             auth = getAuth(fbApp);
             db = getFirestore(fbApp);
-        } catch (e) { 
-            alert("Error iniciando Firebase: " + e.message);
-        }
+        } catch (e) { alert("Error Firebase: " + e.message); }
 
         const state = { user: null, invoices: [], cart: [], clientName: "", logoUrl: localStorage.getItem('dr_logo_v5') || null, nextInvoiceNumber: 1, viewingInvoice: null };
 
@@ -151,7 +149,7 @@
                 const dateStr = dateObj.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' });
                 const timeStr = dateObj.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
                 const itemsHtml = data.cart.map(item => `<div class="flex justify-between items-start mb-2 text-sm border-b border-dashed border-slate-200 pb-1"><div class="w-3/4 pr-2"><span class="text-slate-800 font-bold block text-sm">${item.name}</span>${item.qty > 1 ? `<span class="text-[10px] bg-slate-100 text-slate-500 px-1 rounded font-bold">x${item.qty}</span>` : ''}</div><span class="text-slate-900 font-bold">${ui.money(item.price * item.qty)}</span></div>`).join('');
-                const logo = `<img src="${state.logoUrl}" class="h-24 mx-auto object-contain mb-2">`;
+                const logo = `<img src="${state.logoUrl || DEFAULT_LOGO}" class="h-24 mx-auto object-contain mb-2">`;
                 const numDisplay = number ? String(number).padStart(3, '0') : 'BORRADOR';
 
                 return `
@@ -170,6 +168,7 @@
         };
 
         const logic = {
+            updateClient: (val) => state.clientName = val,
             uploadLogo: (input) => {
                 if (input.files[0]) {
                     const reader = new FileReader();
@@ -177,7 +176,6 @@
                     reader.readAsDataURL(input.files[0]);
                 }
             },
-            updateClient: (val) => { state.clientName = val; },
             addToCart: () => {
                 const select = document.getElementById('prod-select');
                 const priceInput = document.getElementById('manual-price');
@@ -213,13 +211,10 @@
                 document.getElementById('offscreen-render-area').innerHTML = html;
                 const btnSave = document.getElementById('btn-save');
                 if (state.viewingInvoice) btnSave.classList.add('hidden'); else btnSave.classList.remove('hidden');
-                
-                // Try background fetch if new
                 if(isNew && state.user && db) {
                     try {
                         const next = await logic.getNextNumber();
                         state.nextInvoiceNumber = next;
-                        // Update views if still open
                          if (!document.getElementById('preview-modal').classList.contains('hidden')) {
                              const updatedHtml = ui.generateInvoiceHtml(data, next);
                              document.getElementById('screen-preview-container').innerHTML = updatedHtml;
@@ -237,7 +232,7 @@
                 const data = state.viewingInvoice || { clientName: state.clientName, number: state.nextInvoiceNumber };
                 html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
                     const link = document.createElement('a');
-                    link.download = `Factura_${data.number}_${data.clientName.replace(/\s/g,'_')}.jpg`;
+                    link.download = `Factura_${data.number}.jpg`;
                     link.href = canvas.toDataURL('image/jpeg', 0.95);
                     link.click();
                     btn.innerHTML = originalText;
@@ -252,7 +247,7 @@
                         client: state.clientName, items: state.cart, total: total, number: numToSave, date: serverTimestamp(), status: 'pending'
                     });
                     state.cart = []; state.clientName = ""; ui.closeModal(); ui.navigate('dashboard');
-                } catch(e) { alert("Error al guardar: " + e.message); }
+                } catch(e) { alert("Error al guardar."); }
             },
             deleteInvoice: async (id) => { if(confirm("¿Borrar?")) await deleteDoc(doc(db, 'artifacts', appId, 'users', state.user.uid, 'invoices', id)); }
         };
@@ -263,14 +258,13 @@
                 btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> CONECTANDO...';
                 try { await signInAnonymously(auth); } 
                 catch(e) { 
-                    alert("Error al conectar: " + e.message + ". Verifica los dominios autorizados en Firebase."); 
+                    alert("Error al conectar: " + e.message + ". Revisa tu conexión o la configuración en Firebase."); 
                     btn.innerHTML = "INGRESAR";
                 } 
             }, 
             logout: () => signOut(auth) 
         };
 
-        // Logo Default
         const DEFAULT_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgMTUwIj48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI5MDAiIGZvbnQtc2l6ZT0iNjAiIGZpbGw9IiM0MzNjOGIiPkQmYW1wO1IgREVTSUdOUzwvdGV4dD48L3N2Zz4=";
         if(!localStorage.getItem('dr_logo_v5')) localStorage.setItem('dr_logo_v5', DEFAULT_LOGO);
 
