@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>D&R Designs - Facturador</title>
+    <title>D&R Designs - Facturador V16</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1e293b">
@@ -37,7 +37,7 @@
             <div class="flex gap-4 hidden" id="nav-actions">
                 <button onclick="ui.navigate('dashboard')" class="text-slate-400 hover:text-white transition"><i class="fas fa-history text-lg"></i></button>
                 <button onclick="ui.navigate('editor')" class="bg-indigo-600 hover:bg-indigo-500 text-white w-8 h-8 rounded-full font-bold transition shadow-md flex items-center justify-center"><i class="fas fa-plus text-sm"></i></button>
-                <button onclick="app.logout()" class="text-red-400 hover:text-red-300 transition ml-1"><i class="fas fa-power-off text-lg"></i></button>
+                <button onclick="appActions.logout()" class="text-red-400 hover:text-red-300 transition ml-1"><i class="fas fa-power-off text-lg"></i></button>
             </div>
         </div>
     </nav>
@@ -83,7 +83,7 @@
             { name: "Buzo Estampado DTF", price: 100000 }
         ];
 
-        // --- TUS CÓDIGOS DE FIREBASE ---
+        // --- TUS CÓDIGOS DE FIREBASE (Incluidos) ---
         const firebaseConfig = {
             apiKey: "AIzaSyDiNRn-HxaP9bdsHxmYISOJa3X0eFsDY7g",
             authDomain: "facturadordr.firebaseapp.com",
@@ -113,7 +113,7 @@
             },
             renderLogin: (container) => {
                 document.getElementById('nav-actions').classList.add('hidden');
-                container.innerHTML = `<div class="h-full flex items-center justify-center fade-in"><div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm text-center border border-slate-100"><div class="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600 text-3xl"><i class="fas fa-fingerprint"></i></div><h1 class="text-2xl font-black text-slate-800 mb-1">Acceso Interno</h1><p class="text-slate-500 text-sm mb-8">D&R Designs Facturación</p><button id="login-btn" onclick="app.login()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition shadow-lg active:scale-95">INGRESAR</button></div></div>`;
+                container.innerHTML = `<div class="h-full flex items-center justify-center fade-in"><div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm text-center border border-slate-100"><div class="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600 text-3xl"><i class="fas fa-fingerprint"></i></div><h1 class="text-2xl font-black text-slate-800 mb-1">Acceso Interno</h1><p class="text-slate-500 text-sm mb-8">D&R Designs Facturación</p><button id="login-btn" onclick="appActions.login()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition shadow-lg active:scale-95">INGRESAR</button></div></div>`;
             },
             renderDashboard: (container) => {
                 const total = state.invoices.reduce((acc, curr) => acc + (curr.total || 0), 0);
@@ -128,7 +128,7 @@
                 const options = PRODUCTS.map((p, i) => `<option value="${i}">${p.name}</option>`).join('');
                 const logoPreview = state.logoUrl ? `<img src="${state.logoUrl}" class="h-10 object-contain cursor-pointer border border-slate-200 rounded p-1 bg-white" onclick="document.getElementById('logo-input').click()">` : `<div onclick="document.getElementById('logo-input').click()" class="h-10 w-10 bg-slate-100 rounded flex items-center justify-center text-slate-400 cursor-pointer border border-dashed border-slate-300"><i class="fas fa-plus"></i></div>`;
                 
-                // CORRECCIÓN AQUÍ: Usamos logic.updateClient en lugar de state.clientName = ...
+                // AQUÍ ESTÁ LA CORRECCIÓN PRINCIPAL (logic.updateClient)
                 container.innerHTML = `<div class="max-w-md mx-auto fade-in pb-20"><div class="flex justify-between items-center mb-4 px-2"><h2 class="text-xl font-black text-slate-800">Nueva Venta</h2><div class="flex items-center gap-2"><span class="text-xs text-slate-400 font-bold">LOGO:</span><input type="file" id="logo-input" accept="image/*" class="hidden" onchange="logic.uploadLogo(this)">${logoPreview}</div></div><div class="bg-white p-5 rounded-2xl shadow-lg border border-slate-100 mb-4"><div class="mb-4"><label class="block text-xs font-bold text-slate-500 mb-1 uppercase">Cliente</label><input type="text" id="client-input" value="${state.clientName}" oninput="logic.updateClient(this.value)" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition" placeholder="Nombre del cliente"></div><div class="p-3 bg-indigo-50 rounded-xl border border-indigo-100"><div class="flex gap-2 mb-2"><select id="prod-select" class="flex-grow p-2 text-sm rounded-lg border-none focus:ring-0 bg-white shadow-sm font-medium text-slate-700"><option value="" disabled selected>Selecciona producto...</option>${options}</select></div><div class="flex gap-2"><input type="number" id="manual-price" placeholder="Precio ($)" class="w-24 p-2 text-sm rounded-lg border-none shadow-sm text-center font-bold text-slate-700"><button onclick="logic.addToCart()" class="flex-grow bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-sm shadow transition"><i class="fas fa-plus mr-1"></i> AGREGAR</button></div></div></div><div id="cart-list" class="space-y-2 mb-6 min-h-[50px]"><p class="text-center text-slate-400 text-sm italic py-4">Agrega productos...</p></div><div class="bg-slate-900 text-white p-5 rounded-2xl shadow-xl flex justify-between items-center mb-6 sticky bottom-4"><div><p class="text-xs text-slate-400 font-bold uppercase">Total</p><p class="text-2xl font-black" id="cart-total">$ 0</p></div><button onclick="logic.openPreview(true)" class="bg-white text-slate-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-slate-200 transition shadow-lg active:scale-95">GENERAR <i class="fas fa-arrow-right ml-1"></i></button></div></div>`;
                 
                 document.getElementById('prod-select').addEventListener('change', (e) => { document.getElementById('manual-price').value = PRODUCTS[e.target.value].price; });
@@ -152,7 +152,6 @@
                 const dateStr = dateObj.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' });
                 const timeStr = dateObj.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
                 const itemsHtml = data.cart.map(item => `<div class="flex justify-between items-start mb-2 text-sm border-b border-dashed border-slate-200 pb-1"><div class="w-3/4 pr-2"><span class="text-slate-800 font-bold block text-sm">${item.name}</span>${item.qty > 1 ? `<span class="text-[10px] bg-slate-100 text-slate-500 px-1 rounded font-bold">x${item.qty}</span>` : ''}</div><span class="text-slate-900 font-bold">${ui.money(item.price * item.qty)}</span></div>`).join('');
-                // Logo SVG incrustado para que cargue siempre sin internet
                 const defaultLogo = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgMTUwIj48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI5MDAiIGZvbnQtc2l6ZT0iNjAiIGZpbGw9IiM0MzNjOGIiPkQmYW1wO1IgREVTSUdOUzwvdGV4dD48L3N2Zz4=";
                 const logo = `<img src="${state.logoUrl || defaultLogo}" class="h-24 mx-auto object-contain mb-2">`;
                 const numDisplay = number ? String(number).padStart(3, '0') : 'BORRADOR';
@@ -173,7 +172,6 @@
         };
 
         const logic = {
-            // Función para actualizar cliente de forma segura
             updateClient: (val) => {
                 state.clientName = val;
             },
@@ -260,7 +258,7 @@
             deleteInvoice: async (id) => { if(confirm("¿Borrar?")) await deleteDoc(doc(db, 'artifacts', appId, 'users', state.user.uid, 'invoices', id)); }
         };
 
-        // Renombramos app a appActions para evitar conflicto
+        // Renombramos la variable global para evitar conflictos
         const appActions = { 
             login: async () => { 
                 const btn = document.getElementById('login-btn');
@@ -290,7 +288,8 @@
             });
         } else { ui.renderLogin(document.getElementById('main-content')); }
 
-        // Exponer variables al window con nombres seguros
+        // Exponer variables seguras
+        window.appActions = appActions; 
         window.app = appActions; 
         window.logic = logic; 
         window.ui = ui;
