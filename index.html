@@ -2,626 +2,328 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D&R Designs - Gestión Total</title>
-    <!-- Tailwind CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>D&R Designs - Facturador</title>
+    
+    <!-- PWA Config -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e293b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2921/2921226.png">
+
+    <!-- Librerías Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- html2canvas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;900&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Montserrat', sans-serif; background-color: #f1f5f9; }
+        body { font-family: 'Montserrat', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
         
-        .invoice-box {
-            background: white;
+        /* Área de renderizado oculta pero con dimensiones fijas para calidad HD */
+        #offscreen-render-area {
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            width: 500px; 
+        }
+
+        .invoice-card {
+            background-color: white;
+            /* Importante: Fondo blanco explícito para la imagen */
+            background-image: radial-gradient(#f1f5f9 1px, transparent 1px);
+            background-size: 20px 20px;
             width: 100%;
-            max-width: 400px; 
+            max-width: 450px;
             margin: 0 auto;
-            position: relative;
         }
 
         .fade-in { animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Scrollbar oculta para limpieza visual */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="text-slate-800 h-screen flex flex-col overflow-hidden">
+<body class="text-slate-800 h-screen flex flex-col overflow-hidden bg-slate-50">
 
     <!-- Barra Superior -->
-    <nav class="bg-slate-900 text-white shadow-lg z-30 flex-shrink-0">
-        <div class="max-w-6xl mx-auto px-4 h-16 flex justify-between items-center">
-            <div class="flex items-center gap-3 cursor-pointer" onclick="ui.renderView('dashboard')">
-                <div class="w-10 h-10 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
-                    <i class="fas fa-paint-brush"></i>
+    <nav class="bg-slate-900 text-white shadow-lg z-30 flex-shrink-0 pt-safe-top">
+        <div class="max-w-5xl mx-auto px-4 h-16 flex justify-between items-center">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="ui.navigate('dashboard')">
+                <div class="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg border border-slate-700">
+                    <i class="fas fa-paint-brush text-xs"></i>
                 </div>
-                <span class="font-bold text-lg tracking-wide hidden sm:block">D&R Designs</span>
+                <span class="font-bold text-lg tracking-wide">D&R Designs</span>
             </div>
             
+            <!-- Botones de Navegación -->
             <div class="flex gap-4" id="nav-actions">
-                <button onclick="ui.renderView('dashboard')" class="text-slate-300 hover:text-white transition font-medium text-sm flex items-center gap-2">
-                    <i class="fas fa-list"></i> <span class="hidden sm:inline">Historial</span>
+                <button onclick="ui.navigate('dashboard')" class="text-slate-400 hover:text-white transition">
+                    <i class="fas fa-history text-lg"></i>
                 </button>
-                <button onclick="ui.renderView('editor')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded-full font-bold text-sm transition shadow-md flex items-center gap-2">
-                    <i class="fas fa-plus"></i> <span class="hidden sm:inline">Nueva Venta</span>
+                <button onclick="ui.navigate('editor')" class="bg-indigo-600 hover:bg-indigo-500 text-white w-8 h-8 rounded-full font-bold transition shadow-md flex items-center justify-center">
+                    <i class="fas fa-plus text-sm"></i>
                 </button>
-                <button onclick="app.logout()" class="text-slate-400 hover:text-red-400 transition ml-2">
-                    <i class="fas fa-sign-out-alt text-lg"></i>
+                <button onclick="appActions.logout()" class="text-red-400 hover:text-red-300 transition ml-1">
+                    <i class="fas fa-power-off text-lg"></i>
                 </button>
             </div>
         </div>
     </nav>
 
     <!-- Contenido Principal -->
-    <main id="main-content" class="flex-grow overflow-y-auto p-4 md:p-6 bg-slate-100 relative">
-        <!-- Vistas dinámicas -->
+    <main id="main-content" class="flex-grow overflow-y-auto p-4 relative pb-20">
+        <!-- Aquí se cargan las vistas -->
+        <div class="h-full flex items-center justify-center text-slate-400 animate-pulse">
+            <i class="fas fa-circle-notch fa-spin mr-2"></i> Cargando sistema...
+        </div>
     </main>
 
-    <!-- Modal de Previsualización -->
-    <div id="preview-modal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-200 rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
-            <div class="p-3 bg-slate-800 text-white flex justify-between items-center">
-                <h3 class="font-bold text-sm"><i class="fas fa-image mr-2"></i>Vista Previa</h3>
-                <button onclick="ui.closeModal()" class="text-slate-400 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+    <!-- Modal Previsualización -->
+    <div id="preview-modal" class="fixed inset-0 z-50 hidden bg-slate-900/95 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden max-h-[95vh]">
+            <div class="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center flex-shrink-0">
+                <h3 class="font-bold text-slate-700 text-sm flex items-center"><i class="fas fa-eye mr-2 text-indigo-600"></i> Vista Previa</h3>
+                <button onclick="ui.closeModal()" class="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-500 transition"><i class="fas fa-times text-xl"></i></button>
             </div>
             
-            <div class="flex-grow overflow-y-auto p-4 flex justify-center bg-slate-300">
-                <div id="preview-container" class="shadow-xl w-full flex justify-center"></div>
+            <!-- Área de Scroll para ver la factura -->
+            <div class="flex-grow overflow-y-auto p-4 bg-slate-200 flex justify-center">
+                <div id="screen-preview-container" class="w-full shadow-xl transition-transform origin-top bg-white">
+                    <!-- La factura se inyecta aquí -->
+                </div>
             </div>
 
-            <div class="p-4 bg-white border-t border-slate-200 flex gap-3">
-                <button id="btn-download" onclick="logic.downloadImage()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg shadow transition flex justify-center items-center gap-2">
-                    <i class="fas fa-download"></i> Imagen
+            <div class="p-4 border-t border-slate-100 bg-white grid grid-cols-2 gap-3 flex-shrink-0">
+                <button id="btn-download" onclick="logic.downloadImage()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow transition text-sm flex items-center justify-center gap-2 active:scale-95">
+                    <i class="fas fa-download"></i> Descargar
                 </button>
-                <button id="btn-finish" onclick="logic.saveAndFinish()" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-lg shadow transition">
-                    Guardar
+                <button id="btn-save" onclick="logic.saveAndClose()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-xl shadow transition text-sm active:scale-95">
+                    Finalizar
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- JAVASCRIPT LOGIC -->
+    <!-- Renderizado Oculto (Para generar la imagen HD) -->
+    <div id="offscreen-render-area"></div>
+
+    <!-- LÓGICA DE LA APLICACIÓN -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, updateDoc, deleteDoc, getDocs, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- DATOS FIJOS ---
-        const CONFIG = {
-            bankInfo: "Cuenta de Ahorros Bancolombia: 91253141293",
-            slogan: "LA CREATIVIDAD NO TIENE LÍMITES"
-        };
-
+        // --- DATOS DEL NEGOCIO ---
+        const COMPANY = { name: "D&R DESIGNS", slogan: "LA CREATIVIDAD NO TIENE LÍMITES", bank: "Cuenta de Ahorros Bancolombia", account: "91253141293" };
         const PRODUCTS = [
-            { name: "Mug Estándar", price: 18000 },
-            { name: "Mug Mágico", price: 25000 },
-            { name: "Gorra Personalizada", price: 25000 },
-            { name: "Diseño Gráfico (Invitación)", price: 30000 },
-            { name: "Lámina de Aluminio (Sin Marco)", price: 30000 },
-            { name: "Botella de Aluminio", price: 30000 },
-            { name: "Camiseta Sublimada", price: 30000 },
-            { name: "Camiseta DTF (Algodón)", price: 45000 },
-            { name: "Termo Acero Inox. (500ml)", price: 50000 },
-            { name: "Cuadro en Aluminio (Con Marco)", price: 55000 }, 
-            { name: "Cojín DTF (Área Grande)", price: 65000 }, 
-            { name: "Camiseta DTF (Premium)", price: 75000 }, 
+            { name: "Mug Estándar", price: 18000 }, { name: "Mug Mágico", price: 25000 }, { name: "Gorra Personalizada", price: 25000 },
+            { name: "Diseño Gráfico (Invitación)", price: 30000 }, { name: "Lámina de Aluminio (Sin Marco)", price: 30000 }, { name: "Botella de Aluminio", price: 30000 },
+            { name: "Camiseta Sublimada", price: 30000 }, { name: "Camiseta DTF (Algodón)", price: 45000 }, { name: "Termo Acero Inox. 500ml", price: 50000 },
+            { name: "Cuadro en Aluminio (Con Marco)", price: 55000 }, { name: "Cojín DTF (Área Grande)", price: 65000 }, { name: "Camiseta DTF (Premium)", price: 75000 },
             { name: "Buzo Estampado DTF", price: 100000 }
         ];
 
-        // --- FIREBASE ---
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const fbApp = initializeApp(firebaseConfig);
-        const auth = getAuth(fbApp);
-        const db = getFirestore(fbApp);
+        // --- CONFIGURACIÓN FIREBASE ---
+        // IMPORTANTE: Asegúrate de que estos datos sean los de TU proyecto de Firebase.
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "PEGAR_TU_API_KEY_AQUI",
+            authDomain: "PEGAR_TU_PROJECT_ID.firebaseapp.com",
+            projectId: "PEGAR_TU_PROJECT_ID",
+            storageBucket: "PEGAR_TU_PROJECT_ID.appspot.com",
+            messagingSenderId: "PEGAR_TU_SENDER_ID",
+            appId: "PEGAR_TU_APP_ID"
+        };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'dr-designs-app';
+
+        let db, auth;
+        try {
+            const fbApp = initializeApp(firebaseConfig);
+            auth = getAuth(fbApp);
+            db = getFirestore(fbApp);
+        } catch (e) { console.warn("Error Configuración", e); }
 
         // --- ESTADO ---
-        const state = {
-            user: null,
-            invoices: [], // Historial cargado
-            cart: [], // {name, price, qty}
-            clientName: "",
-            logoUrl: localStorage.getItem('dr_logo') || null,
-            tempInvoice: null // Para previsualizar desde historial
-        };
+        const state = { user: null, invoices: [], cart: [], clientName: "", logoUrl: localStorage.getItem('dr_logo_v5') || null, nextInvoiceNumber: 1, viewingInvoice: null };
 
-        // --- UI MANAGER ---
+        // --- UI ---
         const ui = {
-            formatMoney: (val) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val),
-            formatDate: (ts) => ts ? new Date(ts.seconds * 1000).toLocaleDateString('es-CO') : new Date().toLocaleDateString('es-CO'),
-
-            renderLogin: () => {
+            money: (val) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val),
+            navigate: (view) => {
+                const main = document.getElementById('main-content');
+                if (view === 'login') ui.renderLogin(main);
+                else if (view === 'dashboard') ui.renderDashboard(main);
+                else if (view === 'editor') ui.renderEditor(main);
+            },
+            renderLogin: (container) => {
                 document.getElementById('nav-actions').classList.add('hidden');
-                document.getElementById('main-content').innerHTML = `
-                    <div class="h-full flex items-center justify-center p-4">
-                        <div class="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center border-t-4 border-indigo-600">
-                            <h1 class="text-3xl font-black text-slate-800 mb-1">D&R Designs</h1>
-                            <p class="text-xs font-bold text-indigo-500 mb-8 tracking-widest uppercase">Sistema de Gestión</p>
-                            <button onclick="app.login()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition shadow-lg flex justify-center items-center gap-2">
-                                <span>INGRESAR</span> <i class="fas fa-arrow-right"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
+                container.innerHTML = `<div class="h-full flex items-center justify-center fade-in"><div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm text-center border border-slate-100"><div class="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600 text-3xl"><i class="fas fa-fingerprint"></i></div><h1 class="text-2xl font-black text-slate-800 mb-1">Acceso Interno</h1><p class="text-slate-500 text-sm mb-8">D&R Designs Facturación</p><button onclick="appActions.login()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition shadow-lg active:scale-95">INGRESAR</button></div></div>`;
             },
-
-            renderView: (viewName) => {
-                const container = document.getElementById('main-content');
-                if (viewName === 'dashboard') {
-                    ui.renderDashboard(container);
-                } else if (viewName === 'editor') {
-                    ui.renderEditor(container);
-                }
-            },
-
             renderDashboard: (container) => {
-                const totalSales = state.invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
-                
-                // Lista de facturas
-                const listHtml = state.invoices.length > 0 ? state.invoices.map(inv => `
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <span class="font-bold text-slate-800 text-lg">${inv.client}</span>
-                                ${inv.status === 'paid' 
-                                    ? `<span class="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-200">PAGADO</span>` 
-                                    : `<span class="bg-yellow-100 text-yellow-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-yellow-200 cursor-pointer" onclick="logic.markAsPaid('${inv.id}')">PENDIENTE</span>`}
-                            </div>
-                            <p class="text-xs text-slate-500">${ui.formatDate(inv.date)} • ${inv.items.length} items</p>
-                        </div>
-                        <div class="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
-                            <span class="font-black text-slate-900 text-lg">${ui.formatMoney(inv.total)}</span>
-                            <div class="flex gap-2">
-                                <button onclick="logic.viewHistoryInvoice('${inv.id}')" class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center justify-center transition" title="Ver/Descargar"><i class="fas fa-eye"></i></button>
-                                <button onclick="logic.deleteInvoice('${inv.id}')" class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition" title="Eliminar"><i class="fas fa-trash-alt"></i></button>
-                            </div>
-                        </div>
-                    </div>
-                `).join('') : `
-                    <div class="text-center py-10 text-slate-400">
-                        <i class="fas fa-folder-open text-4xl mb-3 opacity-50"></i>
-                        <p>No hay ventas registradas aún.</p>
-                    </div>
-                `;
-
-                container.innerHTML = `
-                    <div class="max-w-4xl mx-auto fade-in pb-20">
-                        <!-- Stats -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                            <div class="bg-slate-800 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
-                                <div class="relative z-10">
-                                    <p class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Ventas Totales</p>
-                                    <h2 class="text-3xl font-black">${ui.formatMoney(totalSales)}</h2>
-                                </div>
-                                <i class="fas fa-chart-line absolute right-4 bottom-4 text-6xl text-white opacity-10"></i>
-                            </div>
-                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
-                                <div>
-                                    <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Facturas</p>
-                                    <h2 class="text-3xl font-black text-indigo-600">${state.invoices.length}</h2>
-                                </div>
-                                <div class="h-12 w-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 text-xl"><i class="fas fa-receipt"></i></div>
-                            </div>
-                        </div>
-
-                        <!-- Lista -->
-                        <h3 class="font-bold text-slate-700 mb-4 px-2">Historial Reciente</h3>
-                        <div class="space-y-3">
-                            ${listHtml}
-                        </div>
-                    </div>
-                `;
+                const total = state.invoices.reduce((acc, curr) => acc + (curr.total || 0), 0);
+                const list = state.invoices.length ? state.invoices.map(inv => `
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-3 flex justify-between items-center hover:shadow-md transition">
+                        <div><div class="flex items-center gap-2"><span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded border border-indigo-100">#${String(inv.number || '---').padStart(3, '0')}</span><span class="font-bold text-slate-800 text-sm">${inv.client}</span></div><p class="text-[10px] text-slate-400 mt-1">${new Date(inv.date?.seconds * 1000).toLocaleDateString()} • ${inv.items.length} items</p></div>
+                        <div class="text-right"><p class="font-black text-slate-800 text-sm">${ui.money(inv.total)}</p><div class="flex gap-3 justify-end mt-1"><button onclick="logic.viewInvoice('${inv.id}')" class="text-indigo-500 hover:text-indigo-700"><i class="fas fa-eye"></i></button><button onclick="logic.deleteInvoice('${inv.id}')" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button></div></div>
+                    </div>`).join('') : '<div class="text-center py-10 text-slate-400"><i class="fas fa-folder-open text-4xl mb-2 opacity-30"></i><p>Sin ventas</p></div>';
+                container.innerHTML = `<div class="max-w-md mx-auto fade-in"><div class="bg-slate-800 text-white p-6 rounded-3xl shadow-xl mb-6 relative overflow-hidden"><div class="relative z-10"><p class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Total Ventas</p><h2 class="text-4xl font-black tracking-tight">${ui.money(total)}</h2></div><i class="fas fa-chart-line absolute -right-4 -bottom-4 text-9xl text-white opacity-5"></i></div><h3 class="font-bold text-slate-700 mb-4 px-2 text-sm uppercase tracking-wide">Historial (${state.invoices.length})</h3><div>${list}</div></div>`;
             },
-
             renderEditor: (container) => {
-                // Reset state for new invoice
-                if (!state.clientName && state.cart.length === 0) {
-                    // Fresh start logic handles this naturally
-                }
-
-                const options = PRODUCTS.map((p, i) => `<option value="${i}">${p.name} - ${ui.formatMoney(p.price)}</option>`).join('');
-                
-                const logoPreview = state.logoUrl 
-                    ? `<img src="${state.logoUrl}" class="h-16 mx-auto object-contain mb-2 cursor-pointer hover:opacity-80" onclick="document.getElementById('logo-input').click()">` 
-                    : `<div onclick="document.getElementById('logo-input').click()" class="h-16 w-16 bg-slate-100 rounded-lg mx-auto flex items-center justify-center text-slate-300 border-2 border-dashed border-slate-300 mb-2 cursor-pointer hover:border-indigo-400 hover:text-indigo-400 transition"><i class="fas fa-image text-xl"></i></div>`;
-
-                container.innerHTML = `
-                    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 fade-in pb-20">
-                        
-                        <!-- Panel de Control -->
-                        <div class="space-y-6">
-                            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                                <div class="flex justify-between items-start mb-4">
-                                    <h3 class="font-bold text-slate-700 text-sm uppercase tracking-wider">Configuración</h3>
-                                    <input type="file" id="logo-input" accept="image/*" class="hidden" onchange="logic.handleLogoUpload(this)">
-                                </div>
-                                <div class="text-center">
-                                    ${logoPreview}
-                                    <p class="text-[10px] text-slate-400">Click en la imagen para cambiar logo</p>
-                                </div>
-                            </div>
-
-                            <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-600">
-                                <h3 class="font-bold text-slate-700 mb-4 text-sm uppercase tracking-wider border-b pb-2">Nueva Venta</h3>
-                                
-                                <div class="mb-4">
-                                    <label class="block text-xs font-bold text-slate-500 mb-1">Cliente</label>
-                                    <input type="text" id="input-client" value="${state.clientName}" oninput="logic.updateClient(this.value)" class="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Nombre del cliente">
-                                </div>
-
-                                <!-- Agregar Producto -->
-                                <div class="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                                    <label class="block text-xs font-bold text-slate-500 mb-2">Agregar Producto</label>
-                                    <div class="flex gap-2 mb-2">
-                                        <select id="select-product" class="flex-grow p-2.5 bg-white border border-slate-300 rounded-lg text-sm outline-none w-full">
-                                            <option value="" disabled selected>Selecciona catálogo...</option>
-                                            ${options}
-                                        </select>
-                                    </div>
-                                    
-                                    <!-- Producto Manual -->
-                                    <details class="text-xs mb-2">
-                                        <summary class="text-indigo-600 font-bold cursor-pointer hover:underline mb-2">¿Producto no listado?</summary>
-                                        <div class="flex gap-2 mt-2">
-                                            <input type="text" id="manual-name" placeholder="Nombre producto" class="flex-grow p-2 border rounded-lg">
-                                            <input type="number" id="manual-price" placeholder="Precio" class="w-24 p-2 border rounded-lg">
-                                        </div>
-                                    </details>
-
-                                    <button onclick="logic.addToCart()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-bold shadow transition text-sm"><i class="fas fa-plus mr-2"></i> AGREGAR A LA FACTURA</button>
-                                </div>
-
-                                <!-- Lista de Items (Carrito) -->
-                                <div class="space-y-2 mb-4" id="editor-cart-list">
-                                    <p class="text-center text-slate-400 text-sm italic py-4">Carrito vacío</p>
-                                </div>
-
-                                <div class="flex justify-between items-center pt-4 border-t border-slate-200">
-                                    <span class="font-bold text-slate-500">Total</span>
-                                    <span class="text-2xl font-black text-slate-800" id="editor-total">$ 0</span>
-                                </div>
-                            </div>
-
-                            <button onclick="logic.openPreview(true)" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-xl hover:bg-slate-800 transition transform active:scale-95 flex items-center justify-center gap-3">
-                                <i class="fas fa-check-circle"></i> GENERAR FACTURA
-                            </button>
-                        </div>
-
-                        <!-- Vista Previa en Vivo (Desktop) -->
-                        <div class="hidden lg:block">
-                            <div class="sticky top-4">
-                                <h3 class="text-center text-slate-400 text-xs font-bold uppercase mb-4">Previsualización en tiempo real</h3>
-                                <div id="invoice-node-desktop"></div> 
-                            </div>
-                        </div>
-                    </div>
-                `;
-                logic.renderInvoiceHtml('invoice-node-desktop');
-                ui.renderEditorCart(); // Restore cart view if navigating back
+                const options = PRODUCTS.map((p, i) => `<option value="${i}">${p.name}</option>`).join('');
+                const logoPreview = state.logoUrl ? `<img src="${state.logoUrl}" class="h-10 object-contain cursor-pointer border border-slate-200 rounded p-1 bg-white" onclick="document.getElementById('logo-input').click()">` : `<div onclick="document.getElementById('logo-input').click()" class="h-10 w-10 bg-slate-100 rounded flex items-center justify-center text-slate-400 cursor-pointer border border-dashed border-slate-300"><i class="fas fa-plus"></i></div>`;
+                container.innerHTML = `<div class="max-w-md mx-auto fade-in pb-20"><div class="flex justify-between items-center mb-4 px-2"><h2 class="text-xl font-black text-slate-800">Nueva Venta</h2><div class="flex items-center gap-2"><span class="text-xs text-slate-400 font-bold">LOGO:</span><input type="file" id="logo-input" accept="image/*" class="hidden" onchange="logic.uploadLogo(this)">${logoPreview}</div></div><div class="bg-white p-5 rounded-2xl shadow-lg border border-slate-100 mb-4"><div class="mb-4"><label class="block text-xs font-bold text-slate-500 mb-1 uppercase">Cliente</label><input type="text" id="client-input" value="${state.clientName}" oninput="logic.updateClient(this.value)" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition" placeholder="Nombre del cliente"></div><div class="p-3 bg-indigo-50 rounded-xl border border-indigo-100"><div class="flex gap-2 mb-2"><select id="prod-select" class="flex-grow p-2 text-sm rounded-lg border-none focus:ring-0 bg-white shadow-sm font-medium text-slate-700"><option value="" disabled selected>Selecciona producto...</option>${options}</select></div><div class="flex gap-2"><input type="number" id="manual-price" placeholder="Precio ($)" class="w-24 p-2 text-sm rounded-lg border-none shadow-sm text-center font-bold text-slate-700"><button onclick="logic.addToCart()" class="flex-grow bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-sm shadow transition"><i class="fas fa-plus mr-1"></i> AGREGAR</button></div></div></div><div id="cart-list" class="space-y-2 mb-6 min-h-[50px]"><p class="text-center text-slate-400 text-sm italic py-4">Agrega productos...</p></div><div class="bg-slate-900 text-white p-5 rounded-2xl shadow-xl flex justify-between items-center mb-6 sticky bottom-4"><div><p class="text-xs text-slate-400 font-bold uppercase">Total</p><p class="text-2xl font-black" id="cart-total">$ 0</p></div><button onclick="logic.openPreview(true)" class="bg-white text-slate-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-slate-200 transition shadow-lg active:scale-95">GENERAR <i class="fas fa-arrow-right ml-1"></i></button></div></div>`;
+                document.getElementById('prod-select').addEventListener('change', (e) => { document.getElementById('manual-price').value = PRODUCTS[e.target.value].price; });
+                ui.renderCart();
             },
-
-            renderInvoiceInternal: (containerId, invoiceData) => {
-                const container = document.getElementById(containerId);
-                if(!container) return;
-
-                // Datos a usar: pasados por argumento o del estado actual
-                const data = invoiceData || {
-                    clientName: state.clientName,
-                    cart: state.cart,
-                    date: new Date()
-                };
-
-                const total = data.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-                
-                // Formateo de Fecha y Hora
-                const dateObj = new Date(data.date.seconds ? data.date.seconds * 1000 : data.date);
-                const dateStr = dateObj.toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
-                const timeStr = dateObj.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
-
-                const itemsHtml = data.cart.map((item) => `
-                    <div class="flex justify-between items-start mb-2 text-sm border-b border-dashed border-gray-200 pb-1">
-                        <div class="w-2/3">
-                            <span class="text-slate-700 font-medium block leading-tight">${item.name}</span>
-                            ${item.qty > 1 ? `<span class="text-[10px] text-slate-400 font-bold bg-slate-100 px-1 rounded">x${item.qty}</span>` : ''}
-                        </div>
-                        <span class="text-slate-900 font-bold">${ui.formatMoney(item.price * item.qty)}</span>
-                    </div>
-                `).join('');
-
-                const logoImg = state.logoUrl 
-                    ? `<img src="${state.logoUrl}" class="h-28 mx-auto object-contain mb-3">`
-                    : `<h1 class="text-3xl font-black text-slate-900 tracking-tight uppercase">D&R DESIGNS</h1>`;
-
-                container.innerHTML = `
-                    <div class="invoice-box bg-white p-8 w-full max-w-[400px] mx-auto shadow-sm text-slate-800 relative overflow-hidden">
-                        <div class="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-
-                        <div class="text-center mb-6 mt-2">
-                            ${logoImg}
-                            <p class="text-[10px] font-bold text-indigo-600 uppercase tracking-[0.2em] mt-1">"${CONFIG.slogan}"</p>
-                        </div>
-
-                        <div class="flex justify-between items-end mb-6 text-xs uppercase tracking-wide text-slate-500 border-b-2 border-slate-100 pb-2">
-                            <div class="text-left max-w-[60%]">
-                                <p>Cliente</p>
-                                <p class="text-sm font-bold text-slate-900 normal-case break-words leading-tight">${data.clientName || 'Consumidor Final'}</p>
-                            </div>
-                            <div class="text-right">
-                                <p>Fecha de Venta</p>
-                                <p class="text-slate-900 font-bold text-sm">${dateStr}</p>
-                                <p class="text-slate-500 font-medium text-[10px] lowercase">${timeStr}</p>
-                            </div>
-                        </div>
-
-                        <div class="mb-6 min-h-[100px]">
-                            ${itemsHtml || '<p class="text-center text-slate-300 text-xs italic py-4">Agrega productos...</p>'}
-                        </div>
-
-                        <div class="flex justify-between items-center mb-6 pt-2 border-t-2 border-slate-900">
-                            <span class="font-bold text-lg">TOTAL</span>
-                            <span class="font-black text-2xl text-slate-900">${ui.formatMoney(total)}</span>
-                        </div>
-
-                        <!-- DATOS BANCARIOS (DESTACADO) -->
-                        <div class="bg-amber-50 border border-amber-200 p-4 mb-6 rounded-xl text-center">
-                            <p class="text-[10px] font-bold text-amber-500 uppercase mb-1 tracking-wider">MEDIO DE PAGO</p>
-                            <p class="text-sm font-black text-slate-800 leading-tight">
-                                ${CONFIG.bankInfo}
-                            </p>
-                        </div>
-
-                        <div class="text-center">
-                            <p class="text-xs text-slate-400 mb-1">¡Gracias por confiar en nuestra creatividad!</p>
-                        </div>
-                    </div>
-                `;
-            },
-
-            renderEditorCart: () => {
-                const container = document.getElementById('editor-cart-list');
-                const totalDisplay = document.getElementById('editor-total');
-                if(!container) return; // Si no estamos en la vista editor
-
-                if (state.cart.length === 0) {
-                    container.innerHTML = '<p class="text-center text-slate-400 text-sm italic py-4">Carrito vacío</p>';
-                    totalDisplay.innerText = '$ 0';
-                    return;
-                }
-
+            renderCart: () => {
+                const container = document.getElementById('cart-list');
+                if (!container) return;
+                if (state.cart.length === 0) { container.innerHTML = '<p class="text-center text-slate-400 text-sm italic py-4">Agrega productos...</p>'; document.getElementById('cart-total').innerText = "$ 0"; return; }
                 let total = 0;
                 container.innerHTML = state.cart.map((item, idx) => {
                     total += (item.price * item.qty);
-                    return `
-                        <div class="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border border-slate-100">
-                            <div>
-                                <span class="font-bold text-slate-700 text-sm block">${item.name}</span>
-                                <span class="text-xs text-slate-400">${item.qty} x ${ui.formatMoney(item.price)}</span>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <span class="text-slate-800 font-bold text-sm">${ui.formatMoney(item.price * item.qty)}</span>
-                                <div class="flex bg-slate-100 rounded-lg overflow-hidden">
-                                    <button onclick="logic.adjustQty(${idx}, -1)" class="px-2 py-1 hover:bg-slate-200 text-xs"><i class="fas fa-minus"></i></button>
-                                    <button onclick="logic.adjustQty(${idx}, 1)" class="px-2 py-1 hover:bg-slate-200 text-xs"><i class="fas fa-plus"></i></button>
-                                </div>
-                                <button onclick="logic.removeItem(${idx})" class="text-red-400 hover:text-red-600 text-xs"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </div>
-                    `;
+                    return `<div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center"><div><span class="font-bold text-slate-700 text-sm block">${item.name}</span><span class="text-xs text-slate-400">${item.qty} x ${ui.money(item.price)}</span></div><div class="flex items-center gap-3"><span class="font-bold text-slate-800 text-sm">${ui.money(item.price * item.qty)}</span><button onclick="logic.removeFromCart(${idx})" class="text-red-400 hover:text-red-600 bg-red-50 w-6 h-6 rounded flex items-center justify-center"><i class="fas fa-minus text-xs"></i></button></div></div>`;
                 }).join('');
-                
-                totalDisplay.innerText = ui.formatMoney(total);
-                // Actualizar preview escritorio
-                logic.renderInvoiceHtml('invoice-node-desktop');
+                document.getElementById('cart-total').innerText = ui.money(total);
             },
+            generateInvoiceHtml: (data, number) => {
+                const total = data.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                let dateObj = new Date();
+                if (data.date && data.date.seconds) dateObj = new Date(data.date.seconds * 1000);
+                const dateStr = dateObj.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' });
+                const timeStr = dateObj.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+                const itemsHtml = data.cart.map(item => `<div class="flex justify-between items-start mb-2 text-sm border-b border-dashed border-slate-200 pb-1"><div class="w-3/4 pr-2"><span class="text-slate-800 font-bold block text-sm">${item.name}</span>${item.qty > 1 ? `<span class="text-[10px] bg-slate-100 text-slate-500 px-1 rounded font-bold">x${item.qty}</span>` : ''}</div><span class="text-slate-900 font-bold">${ui.money(item.price * item.qty)}</span></div>`).join('');
+                
+                // Logo SVG en Base64 para asegurar que siempre cargue
+                const defaultLogo = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgMTUwIj48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI5MDAiIGZvbnQtc2l6ZT0iNjAiIGZpbGw9IiM0MzNjOGIiPkQmYW1wO1IgREVTSUdOUzwvdGV4dD48L3N2Zz4=";
+                const logo = `<img src="${state.logoUrl || defaultLogo}" class="h-24 mx-auto object-contain mb-2">`;
+                const numDisplay = number ? String(number).padStart(3, '0') : 'BORRADOR';
 
+                return `
+                    <div class="invoice-card p-8 w-full text-slate-800 relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+                        <div class="text-center mb-6 mt-4">${logo}<p class="text-[10px] font-bold text-indigo-600 uppercase tracking-[0.2em] mt-1">"${COMPANY.slogan}"</p></div>
+                        <div class="flex justify-center mb-6"><div class="bg-slate-900 text-white px-4 py-1 rounded-full text-xs font-bold shadow-md">FACTURA N° ${numDisplay}</div></div>
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-100 mb-6 flex justify-between items-center"><div><p class="text-[10px] text-slate-400 font-bold uppercase">Cliente</p><p class="text-sm font-bold text-slate-900 capitalize">${data.clientName || 'Consumidor'}</p></div><div class="text-right"><p class="text-[10px] text-slate-400 font-bold uppercase">Fecha</p><p class="text-xs font-bold text-slate-700">${dateStr}</p><p class="text-[10px] text-slate-400">${timeStr}</p></div></div>
+                        <div class="mb-6 min-h-[100px]">${itemsHtml}</div>
+                        <div class="flex justify-between items-center mb-6 pt-3 border-t-2 border-slate-900"><span class="font-bold text-lg text-slate-600 uppercase">Total</span><span class="font-black text-3xl text-slate-900">${ui.money(total)}</span></div>
+                        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r-lg shadow-sm"><p class="text-[10px] font-bold text-yellow-600 uppercase mb-1 tracking-wider flex items-center gap-1"><i class="fas fa-university"></i> Medio de Pago</p><p class="text-xs font-bold text-slate-700">${COMPANY.bank}</p><p class="text-lg font-black text-slate-900 tracking-wide">${COMPANY.account}</p></div>
+                        <div class="text-center border-t border-slate-100 pt-4"><p class="text-[10px] text-slate-400 mb-1">Gracias por apoyar nuestro emprendimiento</p><p class="text-[9px] text-slate-300 font-mono">Generado por D&R System</p></div>
+                    </div>`;
+            },
             closeModal: () => document.getElementById('preview-modal').classList.add('hidden')
         };
 
-        // --- LOGIC ---
         const logic = {
-            handleLogoUpload: (input) => {
-                if (input.files && input.files[0]) {
+            login: async () => { try { await signInAnonymously(auth); } catch(e) { console.error(e); } },
+            logout: () => signOut(auth),
+            updateClient: (val) => state.clientName = val,
+            uploadLogo: (input) => {
+                if (input.files[0]) {
                     const reader = new FileReader();
-                    reader.onload = (e) => {
-                        state.logoUrl = e.target.result;
-                        localStorage.setItem('dr_logo', state.logoUrl);
-                        ui.renderView('editor'); // Recargar vista
-                    };
+                    reader.onload = (e) => { state.logoUrl = e.target.result; localStorage.setItem('dr_logo_v5', e.target.result); ui.navigate('editor'); };
                     reader.readAsDataURL(input.files[0]);
                 }
             },
-
-            updateClient: (val) => {
-                state.clientName = val;
-                logic.renderInvoiceHtml('invoice-node-desktop');
-            },
-
             addToCart: () => {
-                const select = document.getElementById('select-product');
-                const manualName = document.getElementById('manual-name').value;
-                const manualPrice = document.getElementById('manual-price').value;
-                
-                let product = null;
-
-                // 1. Verificar si es manual
-                if (manualName && manualPrice) {
-                    product = { name: manualName, price: parseFloat(manualPrice) };
-                    // Limpiar manual inputs
-                    document.getElementById('manual-name').value = "";
-                    document.getElementById('manual-price').value = "";
-                } 
-                // 2. Verificar si es del select
-                else if (select.value !== "") {
-                    product = PRODUCTS[select.value];
-                    select.value = ""; // Reset
-                } else {
-                    return alert("Selecciona un producto o ingresa uno manual.");
-                }
-
-                // 3. Lógica de agrupación (Agrupar por nombre)
-                const existingIndex = state.cart.findIndex(p => p.name === product.name && p.price === product.price);
-                if (existingIndex >= 0) {
-                    state.cart[existingIndex].qty += 1;
-                } else {
-                    state.cart.push({ ...product, qty: 1 });
-                }
-                
-                ui.renderEditorCart();
+                const select = document.getElementById('prod-select');
+                const priceInput = document.getElementById('manual-price');
+                if (select.value === "" || priceInput.value === "") return alert("Selecciona producto");
+                const product = PRODUCTS[select.value];
+                const price = parseFloat(priceInput.value);
+                const existing = state.cart.find(p => p.name === product.name && p.price === price);
+                if (existing) existing.qty++; else state.cart.push({ name: product.name, price: price, qty: 1 });
+                ui.renderCart(); select.value = ""; priceInput.value = "";
             },
-
-            adjustQty: (idx, delta) => {
-                const item = state.cart[idx];
-                item.qty += delta;
-                if (item.qty <= 0) state.cart.splice(idx, 1);
-                ui.renderEditorCart();
+            removeFromCart: (idx) => { state.cart.splice(idx, 1); ui.renderCart(); },
+            getNextNumber: async () => {
+                if (!state.user || !db) return 1;
+                try {
+                    const ref = collection(db, 'artifacts', appId, 'users', state.user.uid, 'invoices');
+                    const snap = await getDocs(query(ref, orderBy('number', 'desc'), limit(1)));
+                    return !snap.empty ? (snap.docs[0].data().number || 0) + 1 : 1;
+                } catch (e) { return 1; }
             },
-
-            removeItem: (idx) => {
-                state.cart.splice(idx, 1);
-                ui.renderEditorCart();
-            },
-
-            renderInvoiceHtml: (containerId, customData = null) => {
-                ui.renderInvoiceInternal(containerId, customData);
-            },
-
-            openPreview: (isNew = true) => {
+            openPreview: async (isNew = true) => {
                 if (isNew) {
-                    if (state.cart.length === 0) return alert("Agrega productos primero.");
-                    if (!state.clientName) return alert("Escribe el nombre del cliente.");
-                    state.tempInvoice = null; // Es una nueva factura
+                    if (!state.clientName) return alert("Falta Cliente");
+                    if (state.cart.length === 0) return alert("Faltan Productos");
+                    state.viewingInvoice = null;
+                    state.nextInvoiceNumber = 'PENDIENTE';
                 }
+                // Renderizar inmediatamente con datos locales (sin esperar DB)
+                document.getElementById('preview-modal').classList.remove('hidden');
+                const data = state.viewingInvoice || { clientName: state.clientName, cart: state.cart, date: new Date() };
+                const number = state.viewingInvoice ? state.viewingInvoice.number : state.nextInvoiceNumber;
                 
-                const modal = document.getElementById('preview-modal');
-                const container = document.getElementById('preview-container');
-                const btnFinish = document.getElementById('btn-finish');
+                const html = ui.generateInvoiceHtml(data, number);
+                document.getElementById('screen-preview-container').innerHTML = html;
+                document.getElementById('offscreen-render-area').innerHTML = html;
                 
-                container.innerHTML = `<div id="modal-invoice-capture" class="w-full"></div>`;
-                
-                // Si es historial, usar tempInvoice, si no, usar estado actual
-                const data = state.tempInvoice ? state.tempInvoice : null;
-                logic.renderInvoiceHtml('modal-invoice-capture', data);
-                
-                // Ocultar botón guardar si es historial (ya está guardado)
-                if (state.tempInvoice) {
-                    btnFinish.classList.add('hidden');
-                } else {
-                    btnFinish.classList.remove('hidden');
-                }
+                const btnSave = document.getElementById('btn-save');
+                if (state.viewingInvoice) btnSave.classList.add('hidden'); else btnSave.classList.remove('hidden');
 
-                modal.classList.remove('hidden');
-            },
-
-            viewHistoryInvoice: (id) => {
-                const inv = state.invoices.find(i => i.id === id);
-                if (inv) {
-                    // Convertir el timestamp de Firestore a Date para visualización correcta
-                    state.tempInvoice = {
-                        clientName: inv.client,
-                        cart: inv.items,
-                        date: inv.date.seconds * 1000
-                    };
-                    logic.openPreview(false);
+                // Calcular número real en segundo plano si es nuevo
+                if(isNew && state.user) {
+                    logic.getNextNumber().then(num => {
+                        state.nextInvoiceNumber = num;
+                        const updatedHtml = ui.generateInvoiceHtml(data, num);
+                        document.getElementById('screen-preview-container').innerHTML = updatedHtml;
+                        document.getElementById('offscreen-render-area').innerHTML = updatedHtml;
+                    });
                 }
             },
-
+            viewInvoice: (id) => { const inv = state.invoices.find(i => i.id === id); if (inv) { state.viewingInvoice = inv; logic.openPreview(false); } },
             downloadImage: () => {
-                const element = document.querySelector('#modal-invoice-capture .invoice-box'); 
+                const element = document.querySelector('#offscreen-render-area .invoice-card');
                 const btn = document.getElementById('btn-download');
                 const originalText = btn.innerHTML;
-                
-                if (!element) return alert("Error visualizando factura.");
-
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
-                
-                // Nombre del archivo
-                const client = state.tempInvoice ? state.tempInvoice.clientName : state.clientName;
-                const safeName = client.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-
-                html2canvas(element, { 
-                    scale: 3, 
-                    backgroundColor: '#ffffff',
-                    useCORS: true 
-                }).then(canvas => {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                const data = state.viewingInvoice || { clientName: state.clientName, number: state.nextInvoiceNumber };
+                html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
                     const link = document.createElement('a');
-                    link.download = `Factura_${safeName}_${Date.now()}.jpg`;
+                    link.download = `Factura_${data.number}.jpg`;
                     link.href = canvas.toDataURL('image/jpeg', 0.95);
                     link.click();
                     btn.innerHTML = originalText;
-                }).catch(e => {
-                    console.error(e);
-                    btn.innerHTML = originalText;
                 });
             },
-
-            saveAndFinish: async () => {
-                if (state.user && state.cart.length > 0) {
-                    try {
-                        await addDoc(collection(db, 'invoices'), {
-                            client: state.clientName,
-                            total: state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0),
-                            items: state.cart,
-                            date: serverTimestamp(),
-                            userId: state.user.uid,
-                            status: 'pending' // Por defecto pendiente
-                        });
-                        
-                        // Resetear para nueva venta
-                        state.cart = [];
-                        state.clientName = "";
-                        ui.renderView('dashboard');
-                        ui.closeModal();
-                    } catch(e) { console.error(e); alert("Error al guardar en base de datos."); }
-                }
+            saveAndClose: async () => {
+                if (!state.user) return alert("No hay sesión.");
+                const numToSave = (typeof state.nextInvoiceNumber === 'number') ? state.nextInvoiceNumber : 1;
+                try {
+                    const total = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                    await addDoc(collection(db, 'artifacts', appId, 'users', state.user.uid, 'invoices'), {
+                        client: state.clientName, items: state.cart, total: total, number: numToSave, date: serverTimestamp(), status: 'pending'
+                    });
+                    state.cart = []; state.clientName = ""; ui.closeModal(); ui.navigate('dashboard');
+                } catch(e) { alert("Error al guardar."); }
             },
-
-            deleteInvoice: async (id) => {
-                if(confirm("¿Estás seguro de borrar esta factura del historial?")) {
-                    await deleteDoc(doc(db, 'invoices', id));
-                }
-            },
-
-            markAsPaid: async (id) => {
-                await updateDoc(doc(db, 'invoices', id), { status: 'paid' });
-            }
+            deleteInvoice: async (id) => { if(confirm("¿Borrar?")) await deleteDoc(doc(db, 'artifacts', appId, 'users', state.user.uid, 'invoices', id)); }
         };
 
-        // --- AUTH & INIT ---
-        const app = {
-            login: async () => { try { await signInAnonymously(auth); } catch(e) { console.error(e); } },
-            logout: () => signOut(auth)
-        };
+        // Renombrado a appActions para evitar conflictos
+        const appActions = { login: async () => { try { await signInAnonymously(auth); } catch(e) { console.error(e); } }, logout: () => signOut(auth) };
 
-        onAuthStateChanged(auth, (user) => {
-            state.user = user;
-            if(user) {
-                document.getElementById('nav-actions').classList.remove('hidden');
-                
-                // Listener para el historial
-                onSnapshot(query(collection(db, 'invoices'), where("userId", "==", user.uid), orderBy("date", "desc")), (snap) => {
-                    state.invoices = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    // Si estamos en dashboard, refrescar
-                    if (!document.getElementById('select-product')) {
-                        ui.renderDashboard(document.getElementById('main-content'));
-                    }
-                });
+        if (auth) {
+            onAuthStateChanged(auth, (user) => {
+                state.user = user;
+                if (user) {
+                    document.getElementById('nav-actions').classList.remove('hidden');
+                    const ref = collection(db, 'artifacts', appId, 'users', user.uid, 'invoices');
+                    onSnapshot(ref, (snap) => {
+                        const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                        state.invoices = data.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0));
+                        if (!document.getElementById('client-input')) ui.renderDashboard(document.getElementById('main-content'));
+                    });
+                    ui.navigate('dashboard');
+                } else ui.renderLogin(document.getElementById('main-content'));
+            });
+        } else { ui.renderLogin(document.getElementById('main-content')); }
 
-                ui.renderView('dashboard');
-            } else {
-                ui.renderLogin();
-            }
-        });
-
-        // Exponer globalmente
-        window.app = app;
-        window.logic = logic;
-        window.ui = ui;
-
+        window.appActions = appActions; window.app = appActions; window.logic = logic; window.ui = ui;
     </script>
 </body>
 </html>
