@@ -5,14 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>D&R Designs - Facturador</title>
     
-    <!-- PWA Config -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1e293b">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2921/2921226.png">
-
-    <!-- Librerías Externas -->
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -20,30 +16,11 @@
     
     <style>
         body { font-family: 'Montserrat', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
-        
-        /* Área de renderizado oculta pero con dimensiones fijas para calidad HD */
-        #offscreen-render-area {
-            position: absolute;
-            left: -9999px;
-            top: 0;
-            width: 500px; 
-        }
-
-        .invoice-card {
-            background-color: white;
-            /* Importante: Fondo blanco explícito para la imagen */
-            background-image: radial-gradient(#f1f5f9 1px, transparent 1px);
-            background-size: 20px 20px;
-            width: 100%;
-            max-width: 450px;
-            margin: 0 auto;
-        }
-
+        #offscreen-render-area { position: absolute; left: -9999px; top: 0; width: 500px; }
+        .invoice-card { background-color: white; background-image: radial-gradient(#f1f5f9 1px, transparent 1px); background-size: 20px 20px; }
         .fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="text-slate-800 h-screen flex flex-col overflow-hidden bg-slate-50">
@@ -57,27 +34,18 @@
                 </div>
                 <span class="font-bold text-lg tracking-wide">D&R Designs</span>
             </div>
-            
-            <!-- Botones de Navegación -->
-            <div class="flex gap-4" id="nav-actions">
-                <button onclick="ui.navigate('dashboard')" class="text-slate-400 hover:text-white transition">
-                    <i class="fas fa-history text-lg"></i>
-                </button>
-                <button onclick="ui.navigate('editor')" class="bg-indigo-600 hover:bg-indigo-500 text-white w-8 h-8 rounded-full font-bold transition shadow-md flex items-center justify-center">
-                    <i class="fas fa-plus text-sm"></i>
-                </button>
-                <button onclick="appActions.logout()" class="text-red-400 hover:text-red-300 transition ml-1">
-                    <i class="fas fa-power-off text-lg"></i>
-                </button>
+            <div class="flex gap-4 hidden" id="nav-actions">
+                <button onclick="ui.navigate('dashboard')" class="text-slate-400 hover:text-white transition"><i class="fas fa-history text-lg"></i></button>
+                <button onclick="ui.navigate('editor')" class="bg-indigo-600 hover:bg-indigo-500 text-white w-8 h-8 rounded-full font-bold transition shadow-md flex items-center justify-center"><i class="fas fa-plus text-sm"></i></button>
+                <button onclick="app.logout()" class="text-red-400 hover:text-red-300 transition ml-1"><i class="fas fa-power-off text-lg"></i></button>
             </div>
         </div>
     </nav>
 
     <!-- Contenido Principal -->
     <main id="main-content" class="flex-grow overflow-y-auto p-4 relative pb-20">
-        <!-- Aquí se cargan las vistas -->
         <div class="h-full flex items-center justify-center text-slate-400 animate-pulse">
-            <i class="fas fa-circle-notch fa-spin mr-2"></i> Cargando sistema...
+            <i class="fas fa-circle-notch fa-spin mr-2"></i> Iniciando sistema...
         </div>
     </main>
 
@@ -88,35 +56,24 @@
                 <h3 class="font-bold text-slate-700 text-sm flex items-center"><i class="fas fa-eye mr-2 text-indigo-600"></i> Vista Previa</h3>
                 <button onclick="ui.closeModal()" class="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-500 transition"><i class="fas fa-times text-xl"></i></button>
             </div>
-            
-            <!-- Área de Scroll para ver la factura -->
             <div class="flex-grow overflow-y-auto p-4 bg-slate-200 flex justify-center">
-                <div id="screen-preview-container" class="w-full shadow-xl transition-transform origin-top bg-white">
-                    <!-- La factura se inyecta aquí -->
-                </div>
+                <div id="screen-preview-container" class="w-full shadow-xl transition-transform origin-top bg-white"></div>
             </div>
-
             <div class="p-4 border-t border-slate-100 bg-white grid grid-cols-2 gap-3 flex-shrink-0">
-                <button id="btn-download" onclick="logic.downloadImage()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow transition text-sm flex items-center justify-center gap-2 active:scale-95">
-                    <i class="fas fa-download"></i> Descargar
-                </button>
-                <button id="btn-save" onclick="logic.saveAndClose()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-xl shadow transition text-sm active:scale-95">
-                    Finalizar
-                </button>
+                <button id="btn-download" onclick="logic.downloadImage()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow transition text-sm flex items-center justify-center gap-2 active:scale-95"><i class="fas fa-download"></i> Descargar</button>
+                <button id="btn-save" onclick="logic.saveAndClose()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-xl shadow transition text-sm active:scale-95">Finalizar</button>
             </div>
         </div>
     </div>
 
-    <!-- Renderizado Oculto (Para generar la imagen HD) -->
     <div id="offscreen-render-area"></div>
 
-    <!-- LÓGICA DE LA APLICACIÓN -->
+    <!-- LÓGICA -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, updateDoc, deleteDoc, getDocs, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- DATOS DEL NEGOCIO ---
         const COMPANY = { name: "D&R DESIGNS", slogan: "LA CREATIVIDAD NO TIENE LÍMITES", bank: "Cuenta de Ahorros Bancolombia", account: "91253141293" };
         const PRODUCTS = [
             { name: "Mug Estándar", price: 18000 }, { name: "Mug Mágico", price: 25000 }, { name: "Gorra Personalizada", price: 25000 },
@@ -126,10 +83,9 @@
             { name: "Buzo Estampado DTF", price: 100000 }
         ];
 
-        // --- CONFIGURACIÓN FIREBASE ---
-        // IMPORTANTE: Asegúrate de que estos datos sean los de TU proyecto de Firebase.
+        // --- CONFIGURACIÓN FIREBASE (ATENCIÓN AQUÍ) ---
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "PEGAR_TU_API_KEY_AQUI",
+            apiKey: "PEGAR_AQUI_TU_API_KEY",
             authDomain: "PEGAR_TU_PROJECT_ID.firebaseapp.com",
             projectId: "PEGAR_TU_PROJECT_ID",
             storageBucket: "PEGAR_TU_PROJECT_ID.appspot.com",
@@ -143,12 +99,12 @@
             const fbApp = initializeApp(firebaseConfig);
             auth = getAuth(fbApp);
             db = getFirestore(fbApp);
-        } catch (e) { console.warn("Error Configuración", e); }
+        } catch (e) { 
+            alert("Error iniciando Firebase: " + e.message);
+        }
 
-        // --- ESTADO ---
         const state = { user: null, invoices: [], cart: [], clientName: "", logoUrl: localStorage.getItem('dr_logo_v5') || null, nextInvoiceNumber: 1, viewingInvoice: null };
 
-        // --- UI ---
         const ui = {
             money: (val) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val),
             navigate: (view) => {
@@ -159,7 +115,7 @@
             },
             renderLogin: (container) => {
                 document.getElementById('nav-actions').classList.add('hidden');
-                container.innerHTML = `<div class="h-full flex items-center justify-center fade-in"><div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm text-center border border-slate-100"><div class="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600 text-3xl"><i class="fas fa-fingerprint"></i></div><h1 class="text-2xl font-black text-slate-800 mb-1">Acceso Interno</h1><p class="text-slate-500 text-sm mb-8">D&R Designs Facturación</p><button onclick="appActions.login()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition shadow-lg active:scale-95">INGRESAR</button></div></div>`;
+                container.innerHTML = `<div class="h-full flex items-center justify-center fade-in"><div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm text-center border border-slate-100"><div class="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600 text-3xl"><i class="fas fa-fingerprint"></i></div><h1 class="text-2xl font-black text-slate-800 mb-1">Acceso Interno</h1><p class="text-slate-500 text-sm mb-8">D&R Designs Facturación</p><button id="login-btn" onclick="app.login()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition shadow-lg active:scale-95">INGRESAR</button></div></div>`;
             },
             renderDashboard: (container) => {
                 const total = state.invoices.reduce((acc, curr) => acc + (curr.total || 0), 0);
@@ -195,10 +151,7 @@
                 const dateStr = dateObj.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' });
                 const timeStr = dateObj.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
                 const itemsHtml = data.cart.map(item => `<div class="flex justify-between items-start mb-2 text-sm border-b border-dashed border-slate-200 pb-1"><div class="w-3/4 pr-2"><span class="text-slate-800 font-bold block text-sm">${item.name}</span>${item.qty > 1 ? `<span class="text-[10px] bg-slate-100 text-slate-500 px-1 rounded font-bold">x${item.qty}</span>` : ''}</div><span class="text-slate-900 font-bold">${ui.money(item.price * item.qty)}</span></div>`).join('');
-                
-                // Logo SVG en Base64 para asegurar que siempre cargue
-                const defaultLogo = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgMTUwIj48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI5MDAiIGZvbnQtc2l6ZT0iNjAiIGZpbGw9IiM0MzNjOGIiPkQmYW1wO1IgREVTSUdOUzwvdGV4dD48L3N2Zz4=";
-                const logo = `<img src="${state.logoUrl || defaultLogo}" class="h-24 mx-auto object-contain mb-2">`;
+                const logo = `<img src="${state.logoUrl}" class="h-24 mx-auto object-contain mb-2">`;
                 const numDisplay = number ? String(number).padStart(3, '0') : 'BORRADOR';
 
                 return `
@@ -217,9 +170,6 @@
         };
 
         const logic = {
-            login: async () => { try { await signInAnonymously(auth); } catch(e) { console.error(e); } },
-            logout: () => signOut(auth),
-            updateClient: (val) => state.clientName = val,
             uploadLogo: (input) => {
                 if (input.files[0]) {
                     const reader = new FileReader();
@@ -227,6 +177,7 @@
                     reader.readAsDataURL(input.files[0]);
                 }
             },
+            updateClient: (val) => { state.clientName = val; },
             addToCart: () => {
                 const select = document.getElementById('prod-select');
                 const priceInput = document.getElementById('manual-price');
@@ -242,7 +193,8 @@
                 if (!state.user || !db) return 1;
                 try {
                     const ref = collection(db, 'artifacts', appId, 'users', state.user.uid, 'invoices');
-                    const snap = await getDocs(query(ref, orderBy('number', 'desc'), limit(1)));
+                    const q = query(ref, orderBy('number', 'desc'), limit(1));
+                    const snap = await getDocs(q);
                     return !snap.empty ? (snap.docs[0].data().number || 0) + 1 : 1;
                 } catch (e) { return 1; }
             },
@@ -253,26 +205,27 @@
                     state.viewingInvoice = null;
                     state.nextInvoiceNumber = 'PENDIENTE';
                 }
-                // Renderizar inmediatamente con datos locales (sin esperar DB)
                 document.getElementById('preview-modal').classList.remove('hidden');
                 const data = state.viewingInvoice || { clientName: state.clientName, cart: state.cart, date: new Date() };
                 const number = state.viewingInvoice ? state.viewingInvoice.number : state.nextInvoiceNumber;
-                
                 const html = ui.generateInvoiceHtml(data, number);
                 document.getElementById('screen-preview-container').innerHTML = html;
                 document.getElementById('offscreen-render-area').innerHTML = html;
-                
                 const btnSave = document.getElementById('btn-save');
                 if (state.viewingInvoice) btnSave.classList.add('hidden'); else btnSave.classList.remove('hidden');
-
-                // Calcular número real en segundo plano si es nuevo
-                if(isNew && state.user) {
-                    logic.getNextNumber().then(num => {
-                        state.nextInvoiceNumber = num;
-                        const updatedHtml = ui.generateInvoiceHtml(data, num);
-                        document.getElementById('screen-preview-container').innerHTML = updatedHtml;
-                        document.getElementById('offscreen-render-area').innerHTML = updatedHtml;
-                    });
+                
+                // Try background fetch if new
+                if(isNew && state.user && db) {
+                    try {
+                        const next = await logic.getNextNumber();
+                        state.nextInvoiceNumber = next;
+                        // Update views if still open
+                         if (!document.getElementById('preview-modal').classList.contains('hidden')) {
+                             const updatedHtml = ui.generateInvoiceHtml(data, next);
+                             document.getElementById('screen-preview-container').innerHTML = updatedHtml;
+                             document.getElementById('offscreen-render-area').innerHTML = updatedHtml;
+                         }
+                    } catch(e) {}
                 }
             },
             viewInvoice: (id) => { const inv = state.invoices.find(i => i.id === id); if (inv) { state.viewingInvoice = inv; logic.openPreview(false); } },
@@ -284,7 +237,7 @@
                 const data = state.viewingInvoice || { clientName: state.clientName, number: state.nextInvoiceNumber };
                 html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
                     const link = document.createElement('a');
-                    link.download = `Factura_${data.number}.jpg`;
+                    link.download = `Factura_${data.number}_${data.clientName.replace(/\s/g,'_')}.jpg`;
                     link.href = canvas.toDataURL('image/jpeg', 0.95);
                     link.click();
                     btn.innerHTML = originalText;
@@ -299,13 +252,27 @@
                         client: state.clientName, items: state.cart, total: total, number: numToSave, date: serverTimestamp(), status: 'pending'
                     });
                     state.cart = []; state.clientName = ""; ui.closeModal(); ui.navigate('dashboard');
-                } catch(e) { alert("Error al guardar."); }
+                } catch(e) { alert("Error al guardar: " + e.message); }
             },
             deleteInvoice: async (id) => { if(confirm("¿Borrar?")) await deleteDoc(doc(db, 'artifacts', appId, 'users', state.user.uid, 'invoices', id)); }
         };
 
-        // Renombrado a appActions para evitar conflictos
-        const appActions = { login: async () => { try { await signInAnonymously(auth); } catch(e) { console.error(e); } }, logout: () => signOut(auth) };
+        const app = { 
+            login: async () => { 
+                const btn = document.getElementById('login-btn');
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> CONECTANDO...';
+                try { await signInAnonymously(auth); } 
+                catch(e) { 
+                    alert("Error al conectar: " + e.message + ". Verifica los dominios autorizados en Firebase."); 
+                    btn.innerHTML = "INGRESAR";
+                } 
+            }, 
+            logout: () => signOut(auth) 
+        };
+
+        // Logo Default
+        const DEFAULT_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgMTUwIj48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI5MDAiIGZvbnQtc2l6ZT0iNjAiIGZpbGw9IiM0MzNjOGIiPkQmYW1wO1IgREVTSUdOUzwvdGV4dD48L3N2Zz4=";
+        if(!localStorage.getItem('dr_logo_v5')) localStorage.setItem('dr_logo_v5', DEFAULT_LOGO);
 
         if (auth) {
             onAuthStateChanged(auth, (user) => {
@@ -323,7 +290,7 @@
             });
         } else { ui.renderLogin(document.getElementById('main-content')); }
 
-        window.appActions = appActions; window.app = appActions; window.logic = logic; window.ui = ui;
+        window.app = app; window.logic = logic; window.ui = ui;
     </script>
 </body>
 </html>
