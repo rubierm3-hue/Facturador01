@@ -83,7 +83,7 @@
             { name: "Buzo Estampado DTF", price: 100000 }
         ];
 
-        // --- TUS CÓDIGOS DE FIREBASE REALES (Extraídos de tu imagen) ---
+        // --- TUS CÓDIGOS DE FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyDiNRn-HxaP9bdsHxmYISOJa3X0eFsDY7g",
             authDomain: "facturadordr.firebaseapp.com",
@@ -99,7 +99,7 @@
             const fbApp = initializeApp(firebaseConfig);
             auth = getAuth(fbApp);
             db = getFirestore(fbApp);
-        } catch (e) { alert("Error Firebase: " + e.message); }
+        } catch (e) { console.warn("Error Firebase", e); }
 
         const state = { user: null, invoices: [], cart: [], clientName: "", logoUrl: localStorage.getItem('dr_logo_v5') || null, nextInvoiceNumber: 1, viewingInvoice: null };
 
@@ -127,7 +127,10 @@
             renderEditor: (container) => {
                 const options = PRODUCTS.map((p, i) => `<option value="${i}">${p.name}</option>`).join('');
                 const logoPreview = state.logoUrl ? `<img src="${state.logoUrl}" class="h-10 object-contain cursor-pointer border border-slate-200 rounded p-1 bg-white" onclick="document.getElementById('logo-input').click()">` : `<div onclick="document.getElementById('logo-input').click()" class="h-10 w-10 bg-slate-100 rounded flex items-center justify-center text-slate-400 cursor-pointer border border-dashed border-slate-300"><i class="fas fa-plus"></i></div>`;
+                
+                // CORRECCIÓN AQUÍ: Usamos logic.updateClient en lugar de state.clientName = ...
                 container.innerHTML = `<div class="max-w-md mx-auto fade-in pb-20"><div class="flex justify-between items-center mb-4 px-2"><h2 class="text-xl font-black text-slate-800">Nueva Venta</h2><div class="flex items-center gap-2"><span class="text-xs text-slate-400 font-bold">LOGO:</span><input type="file" id="logo-input" accept="image/*" class="hidden" onchange="logic.uploadLogo(this)">${logoPreview}</div></div><div class="bg-white p-5 rounded-2xl shadow-lg border border-slate-100 mb-4"><div class="mb-4"><label class="block text-xs font-bold text-slate-500 mb-1 uppercase">Cliente</label><input type="text" id="client-input" value="${state.clientName}" oninput="logic.updateClient(this.value)" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition" placeholder="Nombre del cliente"></div><div class="p-3 bg-indigo-50 rounded-xl border border-indigo-100"><div class="flex gap-2 mb-2"><select id="prod-select" class="flex-grow p-2 text-sm rounded-lg border-none focus:ring-0 bg-white shadow-sm font-medium text-slate-700"><option value="" disabled selected>Selecciona producto...</option>${options}</select></div><div class="flex gap-2"><input type="number" id="manual-price" placeholder="Precio ($)" class="w-24 p-2 text-sm rounded-lg border-none shadow-sm text-center font-bold text-slate-700"><button onclick="logic.addToCart()" class="flex-grow bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-sm shadow transition"><i class="fas fa-plus mr-1"></i> AGREGAR</button></div></div></div><div id="cart-list" class="space-y-2 mb-6 min-h-[50px]"><p class="text-center text-slate-400 text-sm italic py-4">Agrega productos...</p></div><div class="bg-slate-900 text-white p-5 rounded-2xl shadow-xl flex justify-between items-center mb-6 sticky bottom-4"><div><p class="text-xs text-slate-400 font-bold uppercase">Total</p><p class="text-2xl font-black" id="cart-total">$ 0</p></div><button onclick="logic.openPreview(true)" class="bg-white text-slate-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-slate-200 transition shadow-lg active:scale-95">GENERAR <i class="fas fa-arrow-right ml-1"></i></button></div></div>`;
+                
                 document.getElementById('prod-select').addEventListener('change', (e) => { document.getElementById('manual-price').value = PRODUCTS[e.target.value].price; });
                 ui.renderCart();
             },
@@ -149,7 +152,9 @@
                 const dateStr = dateObj.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' });
                 const timeStr = dateObj.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
                 const itemsHtml = data.cart.map(item => `<div class="flex justify-between items-start mb-2 text-sm border-b border-dashed border-slate-200 pb-1"><div class="w-3/4 pr-2"><span class="text-slate-800 font-bold block text-sm">${item.name}</span>${item.qty > 1 ? `<span class="text-[10px] bg-slate-100 text-slate-500 px-1 rounded font-bold">x${item.qty}</span>` : ''}</div><span class="text-slate-900 font-bold">${ui.money(item.price * item.qty)}</span></div>`).join('');
-                const logo = `<img src="${state.logoUrl || DEFAULT_LOGO}" class="h-24 mx-auto object-contain mb-2">`;
+                // Logo SVG incrustado para que cargue siempre sin internet
+                const defaultLogo = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgMTUwIj48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI5MDAiIGZvbnQtc2l6ZT0iNjAiIGZpbGw9IiM0MzNjOGIiPkQmYW1wO1IgREVTSUdOUzwvdGV4dD48L3N2Zz4=";
+                const logo = `<img src="${state.logoUrl || defaultLogo}" class="h-24 mx-auto object-contain mb-2">`;
                 const numDisplay = number ? String(number).padStart(3, '0') : 'BORRADOR';
 
                 return `
@@ -168,7 +173,10 @@
         };
 
         const logic = {
-            updateClient: (val) => state.clientName = val,
+            // Función para actualizar cliente de forma segura
+            updateClient: (val) => {
+                state.clientName = val;
+            },
             uploadLogo: (input) => {
                 if (input.files[0]) {
                     const reader = new FileReader();
@@ -252,21 +260,19 @@
             deleteInvoice: async (id) => { if(confirm("¿Borrar?")) await deleteDoc(doc(db, 'artifacts', appId, 'users', state.user.uid, 'invoices', id)); }
         };
 
-        const app = { 
+        // Renombramos app a appActions para evitar conflicto
+        const appActions = { 
             login: async () => { 
                 const btn = document.getElementById('login-btn');
                 btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> CONECTANDO...';
                 try { await signInAnonymously(auth); } 
                 catch(e) { 
-                    alert("Error al conectar: " + e.message + ". Revisa tu conexión o la configuración en Firebase."); 
+                    alert("Error al conectar: " + e.message); 
                     btn.innerHTML = "INGRESAR";
                 } 
             }, 
             logout: () => signOut(auth) 
         };
-
-        const DEFAULT_LOGO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgMTUwIj48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI5MDAiIGZvbnQtc2l6ZT0iNjAiIGZpbGw9IiM0MzNjOGIiPkQmYW1wO1IgREVTSUdOUzwvdGV4dD48L3N2Zz4=";
-        if(!localStorage.getItem('dr_logo_v5')) localStorage.setItem('dr_logo_v5', DEFAULT_LOGO);
 
         if (auth) {
             onAuthStateChanged(auth, (user) => {
@@ -284,7 +290,10 @@
             });
         } else { ui.renderLogin(document.getElementById('main-content')); }
 
-        window.app = app; window.logic = logic; window.ui = ui;
+        // Exponer variables al window con nombres seguros
+        window.app = appActions; 
+        window.logic = logic; 
+        window.ui = ui;
     </script>
 </body>
 </html>
